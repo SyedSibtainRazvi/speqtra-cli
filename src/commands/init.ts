@@ -150,7 +150,7 @@ export async function init(options: { json?: boolean }) {
 		rl.close();
 	}
 
-	const index = parseInt(selection, 10) - 1;
+	const index = Number.parseInt(selection, 10) - 1;
 	if (Number.isNaN(index) || index < 0 || index >= projects.length) {
 		console.error(chalk.red("Invalid selection."));
 		process.exit(1);

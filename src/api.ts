@@ -28,8 +28,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 			},
 		});
 	} catch (err) {
-		const msg =
-			err instanceof Error ? err.message : "Network request failed";
+		const msg = err instanceof Error ? err.message : "Network request failed";
 		throw new ApiError(
 			0,
 			`Could not reach server at ${creds.serverUrl}. ${msg}`,

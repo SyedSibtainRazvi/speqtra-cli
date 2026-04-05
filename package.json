@@ -10,6 +10,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/index.ts",
+    "format": "biome format --write src/",
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
     "prepublishOnly": "tsc"

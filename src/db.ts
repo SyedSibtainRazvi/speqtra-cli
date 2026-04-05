@@ -344,7 +344,7 @@ export function findTask(taskIdOrNumber: string): LocalTask | null {
 
 	const numMatch = taskIdOrNumber.match(/(?:^|-)(\d+)$/);
 	if (numMatch) {
-		const num = parseInt(numMatch[1], 10);
+		const num = Number.parseInt(numMatch[1], 10);
 		const byNumber = db
 			.prepare("SELECT * FROM tasks WHERE number = ?")
 			.get(num) as LocalTask | undefined;

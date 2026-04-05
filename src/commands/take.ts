@@ -9,10 +9,10 @@ import { join } from "node:path";
 import chalk from "chalk";
 import { ApiError, patch } from "../api.js";
 import {
+	PROJECT_DIR_PATH,
 	formatTaskId,
 	getCredentials,
 	getProjectConfig,
-	PROJECT_DIR_PATH,
 } from "../config.js";
 import { findTask, getDb, getTaskComments } from "../db.js";
 
@@ -235,7 +235,12 @@ export async function take(
 	// Auto-sync to server (take is a coordination event)
 	let synced = false;
 	if (!task.is_new) {
-		synced = await syncTaskToServer(task.id, "in_progress", creds.userId, task.cloud_version);
+		synced = await syncTaskToServer(
+			task.id,
+			"in_progress",
+			creds.userId,
+			task.cloud_version,
+		);
 		if (synced) {
 			db.prepare(
 				"UPDATE tasks SET is_dirty = 0, synced_at = datetime('now') WHERE id = ?",
@@ -244,7 +249,11 @@ export async function take(
 	}
 
 	// Refresh task data after update
-	const updated = findTask(task.id)!;
+	const updated = findTask(task.id);
+	if (!updated) {
+		console.error(chalk.red("Failed to refresh task after update."));
+		process.exit(1);
+	}
 
 	// Write active task spec
 	if (!existsSync(PROJECT_DIR_PATH)) {
@@ -340,7 +349,12 @@ export async function drop(
 
 			// Auto-sync to server (drop is a coordination event)
 			if (!task.is_new) {
-				synced = await syncTaskToServer(task.id, "done", null, task.cloud_version);
+				synced = await syncTaskToServer(
+					task.id,
+					"done",
+					null,
+					task.cloud_version,
+				);
 				if (synced) {
 					db.prepare(
 						"UPDATE tasks SET is_dirty = 0, synced_at = datetime('now') WHERE id = ?",
