@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
+import chalk from "chalk";
 import { Command } from "commander";
+import { ApiError } from "./api.js";
 import { comment } from "./commands/comment.js";
 import { create } from "./commands/create.js";
 import { deleteTask } from "./commands/delete.js";
@@ -152,4 +154,11 @@ program
 	.option("--json", "Output as JSON")
 	.action(indexRepo);
 
-program.parse();
+program.parseAsync().catch((err) => {
+	if (err instanceof ApiError) {
+		console.error(chalk.red(err.message));
+	} else {
+		console.error(chalk.red(err.message || "An unexpected error occurred."));
+	}
+	process.exit(1);
+});

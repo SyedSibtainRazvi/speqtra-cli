@@ -25,7 +25,11 @@ export async function login(options: { json?: boolean }) {
 	apiKey = apiKey.trim();
 
 	if (!apiKey) {
-		console.error(chalk.red("No API key provided."));
+		console.error(
+			chalk.red(
+				"No API key provided. Generate one in the Speqtra web app under Settings > API Keys.",
+			),
+		);
 		process.exit(1);
 	}
 
