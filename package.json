@@ -1,6 +1,6 @@
 {
   "name": "@speqtra/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Speqtra CLI — sync tasks to your coding agent",
   "type": "module",
   "bin": {
