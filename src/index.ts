@@ -146,6 +146,7 @@ program
 	.command("init")
 	.description("Link this repo to a Speqtra project")
 	.option("--json", "Output as JSON")
+	.option("--local [name]", "Create a local project without an account")
 	.action(init);
 
 program

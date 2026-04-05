@@ -98,9 +98,12 @@ function buildTaskMarkdown(
 function buildAgentBlock(displayId: string, summary: string): string {
 	return [
 		BEGIN_MARKER,
-		`You have an active task from Speqtra: **${displayId} — ${summary}**`,
+		`## Active Task: ${displayId} — ${summary}`,
+		"",
 		"Read `.speqtra/active-task.md` for the full spec before starting work.",
-		"When done, the developer will run `speqtra drop` to mark it complete.",
+		"",
+		"When the task is complete, run `speqtra drop` to mark it done and clean up.",
+		`To add progress notes: \`speqtra comment ${displayId} "your update here"\``,
 		END_MARKER,
 	].join("\n");
 }

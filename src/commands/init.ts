@@ -24,37 +24,63 @@ function buildInitBlock(projectName: string, prefix: string): string {
 	return `${INIT_BEGIN}
 # Speqtra — Task Sync for Coding Agents
 
-This project uses **Speqtra** for task management. Tasks are created by PMs in the Speqtra web app and synced to your local environment.
+This project uses **Speqtra** for task management. You can manage tasks directly using the CLI.
 
-## Active Task
+## You Are the Task Manager
 
-When a task is active, the full spec is at \`.speqtra/active-task.md\`. Read it before starting work.
+You have full control over tasks via the \`speqtra\` CLI. Act on the user's intent:
 
-## Quick Reference
+- **User says "take task X"** → run \`speqtra take ${prefix}-X\`, read the spec, start working
+- **User says "create a task for..."** → run \`speqtra create "summary" -d "rich description"\` — include relevant files, components, acceptance criteria based on what you know about the codebase
+- **User says "update task X"** → run \`speqtra update ${prefix}-X\` with the right flags
+- **User says "add a comment"** → run \`speqtra comment ${prefix}-X "detailed comment"\` — include technical context, what was tried, what worked
+- **User says "assign to X" or "change priority"** → run \`speqtra update\` with \`--assign\`, \`--prio\`, \`--status\`, \`--due\`, etc.
+- **User says "I'm done" or "close this"** → run \`speqtra drop\` to mark done and clean up
+- **User says "list tasks" or "what should I work on"** → run \`speqtra list\`
+
+## When Creating or Updating Tasks
+
+Enrich with codebase knowledge:
+- Reference specific files, functions, and components that are relevant
+- Add acceptance criteria based on the codebase structure
+- Include technical context (dependencies, related modules, potential gotchas)
+- Use the \`-d\` flag for descriptions: \`speqtra create "summary" -d "detailed description"\`
+
+## When Commenting
+
+Add value beyond what the user said:
+- Include what was implemented, what files changed, what approach was taken
+- Note any technical decisions or trade-offs
+- Reference specific code if relevant
+
+## Active Task Workflow
+
+1. \`speqtra take ${prefix}-N\` — claim a task, spec written to \`.speqtra/active-task.md\`
+2. Read \`.speqtra/active-task.md\` for the full spec
+3. Implement the task
+4. \`speqtra drop\` — mark done, clean up agent configs
+
+## CLI Reference
 
 \`\`\`bash
-speqtra list              # See your assigned tasks
-speqtra take <id>         # Take a task — writes spec, agent sees it
-speqtra drop              # Done — mark complete, clean up
-speqtra sync              # Pull/push changes with server
-speqtra show <id>         # View task details
-speqtra create "summary"  # Create a task locally
-speqtra comment <id> "…"  # Add a comment
+speqtra list                        # See tasks (--all for everyone's)
+speqtra take <id>                   # Take a task, write spec for agent
+speqtra drop                        # Mark done, clean up
+speqtra create "summary" -d "desc"  # Create with description
+speqtra update <id> --prio high     # Update priority, status, assignee, etc.
+speqtra comment <id> "text"         # Add a comment
+speqtra show <id>                   # View task details
+speqtra start <id>                  # Mark in progress
+speqtra close <id>                  # Mark done
+speqtra claim <id>                  # Assign to me + start
+speqtra sync                        # Pull/push with server
 \`\`\`
-
-## Workflow
-
-1. \`speqtra sync\` — pull latest tasks
-2. \`speqtra take ${prefix}-N\` — claim a task, spec written to \`.speqtra/active-task.md\`
-3. Read the spec, implement it
-4. \`speqtra drop\` — mark done, clean up agent configs
-5. \`speqtra sync\` — push changes to server
 
 ## Rules
 
-- Read \`.speqtra/active-task.md\` before starting any work
+- Read \`.speqtra/active-task.md\` before starting any work on a taken task
 - Follow the acceptance criteria in the spec
-- When done, remind the developer to run \`speqtra drop\`
+- Run \`speqtra drop\` when work is complete
 - Do not modify files in \`.speqtra/\` directly
 
 *Project: ${projectName}*
@@ -114,11 +140,23 @@ function injectInitBlock(filePath: string, block: string): void {
 
 // --- Main ---
 
-export async function init(options: { json?: boolean }) {
+export async function init(options: {
+	json?: boolean;
+	local?: string | boolean;
+}) {
+	if (options.local) {
+		return initLocal(options);
+	}
+
 	const creds = getCredentials();
 	if (!creds) {
 		console.error(
 			chalk.red("No credentials found. Run `speqtra login` first."),
+		);
+		console.error(
+			chalk.dim(
+				"Or use `speqtra init --local <name>` to start without an account.",
+			),
 		);
 		process.exit(1);
 	}
@@ -194,4 +232,70 @@ export async function init(options: { json?: boolean }) {
 
 	// Auto-run first sync
 	await sync({ json: options.json });
+}
+
+async function initLocal(options: {
+	json?: boolean;
+	local?: string | boolean;
+}) {
+	let name = typeof options.local === "string" ? options.local.trim() : "";
+
+	if (!name) {
+		const rl = createInterface({
+			input: process.stdin,
+			output: process.stdout,
+		});
+		try {
+			name = (await rl.question("Project name: ")).trim();
+		} finally {
+			rl.close();
+		}
+	}
+
+	if (!name) {
+		console.error(chalk.red("Project name is required."));
+		process.exit(1);
+	}
+
+	const prefix = name
+		.slice(0, 4)
+		.toUpperCase()
+		.replace(/[^A-Z]/g, "");
+	const projectId = `local_${Date.now()}`;
+
+	saveProjectConfig({
+		projectId,
+		projectName: name,
+		taskPrefix: prefix || "TASK",
+		localCounter: 0,
+	});
+	initDb();
+	setSyncState("project_id", projectId);
+	setSyncState("project_name", name);
+
+	// Inject agent instructions
+	const agents = detectAgents();
+	const block = buildInitBlock(name, prefix || "TASK");
+	for (const agent of agents) {
+		injectInitBlock(AGENT_CONFIGS[agent], block);
+	}
+
+	if (options.json) {
+		console.log(JSON.stringify({ status: "ok", project: name, mode: "local" }));
+	} else {
+		console.log(chalk.green(`\n✓ Created local project '${name}'`));
+		console.log(
+			chalk.dim(
+				`  Agent instructions injected into: ${agents.map((a) => AGENT_CONFIGS[a]).join(", ")}`,
+			),
+		);
+		console.log(
+			chalk.dim('  Run `speqtra create "task summary"` to add tasks.'),
+		);
+		console.log(
+			chalk.dim(
+				"  Run `speqtra login` later to connect to the server and sync.",
+			),
+		);
+	}
 }

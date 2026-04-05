@@ -18,15 +18,28 @@ Your coding agent (Claude Code, Cursor, Copilot, Codex) instantly sees the full 
 npm install -g @speqtra/cli
 ```
 
-## Quick Start
+## Quick Start (local, no account needed)
+
+```bash
+speqtra init --local "My Project"   # Create a local project
+speqtra create "Add user auth"      # Create a task
+speqtra take MYPR-1                 # Take it — agent sees it
+# ... work with your coding agent ...
+speqtra drop                        # Done, clean up
+```
+
+## Quick Start (with Speqtra account)
+
+Team sync coming soon.
 
 ```bash
 speqtra login           # Authenticate
 speqtra init            # Link repo to your project
-speqtra list            # See your tasks
+speqtra sync            # Pull tasks from server
 speqtra take SPQ-5      # Take a task — agent sees it
 # ... work with your coding agent ...
 speqtra drop            # Done, clean up
+speqtra sync            # Push changes
 ```
 
 ## Commands
