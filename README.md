@@ -13,7 +13,7 @@ $ speqtra take SPQ-5
   When done, run `speqtra drop` to clean up.
 ```
 
-Your PM creates structured tasks in [Speqtra](https://speqtra.dev). You run `speqtra take`. Your coding agent (Claude Code, Cursor, Copilot, Codex) instantly sees the full spec, acceptance criteria, and planning context. No copy-paste. No context switching.
+Your PM creates structured tasks in Speqtra. You run `speqtra take`. Your coding agent (Claude Code, Cursor, Copilot, Codex) instantly sees the full spec, acceptance criteria, and planning context. No copy-paste. No context switching.
 
 ## Install
 
