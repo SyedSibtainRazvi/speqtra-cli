@@ -1,0 +1,58 @@
+{
+  "name": "@speqtra/cli",
+  "version": "0.1.0",
+  "description": "Speqtra CLI — sync tasks to your coding agent",
+  "type": "module",
+  "bin": {
+    "speqtra": "./dist/index.js",
+    "sp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --write src/",
+    "prepublishOnly": "tsc"
+  },
+  "keywords": [
+    "cli",
+    "task-management",
+    "coding-agent",
+    "claude-code",
+    "cursor",
+    "copilot",
+    "project-management",
+    "speqtra"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SyedSibtainRazvi/speqtra-cli.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "better-sqlite3": "^11.9.1",
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/better-sqlite3": "^7.6.13",
+    "tsx": "^4.21.0",
+    "typescript": "^5"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@biomejs/biome",
+      "better-sqlite3",
+      "esbuild"
+    ]
+  }
+}
