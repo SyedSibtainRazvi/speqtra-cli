@@ -182,17 +182,16 @@ async function syncTaskToServer(
 	taskId: string,
 	status: string,
 	assigneeId: string | null,
+	cloudVersion: number,
 ): Promise<boolean> {
 	try {
 		await patch(`/api/v1/tasks/${taskId}`, {
 			status,
 			assigneeId: assigneeId ?? undefined,
+			cloudVersion,
 		});
 		return true;
-	} catch (err) {
-		if (err instanceof ApiError) {
-			return false;
-		}
+	} catch {
 		return false;
 	}
 }
@@ -236,7 +235,7 @@ export async function take(
 	// Auto-sync to server (take is a coordination event)
 	let synced = false;
 	if (!task.is_new) {
-		synced = await syncTaskToServer(task.id, "in_progress", creds.userId);
+		synced = await syncTaskToServer(task.id, "in_progress", creds.userId, task.cloud_version);
 		if (synced) {
 			db.prepare(
 				"UPDATE tasks SET is_dirty = 0, synced_at = datetime('now') WHERE id = ?",
@@ -341,7 +340,7 @@ export async function drop(
 
 			// Auto-sync to server (drop is a coordination event)
 			if (!task.is_new) {
-				synced = await syncTaskToServer(task.id, "done", null);
+				synced = await syncTaskToServer(task.id, "done", null, task.cloud_version);
 				if (synced) {
 					db.prepare(
 						"UPDATE tasks SET is_dirty = 0, synced_at = datetime('now') WHERE id = ?",

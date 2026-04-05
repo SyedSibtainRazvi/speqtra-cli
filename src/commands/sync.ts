@@ -4,6 +4,7 @@ import chalk from "chalk";
 import { ApiError, get, patch, post } from "../api.js";
 import { getProjectConfig, PROJECT_DIR_PATH } from "../config.js";
 import {
+  getAllTasks,
   getDirtyTasks,
   getNewComments,
   getNewTasks,
@@ -92,7 +93,10 @@ export async function sync(options: { json?: boolean; all?: boolean }) {
   }
 
   // --- Pull tasks ---
-  const lastPull = getSyncState("last_pull_at");
+  // Track separate timestamps for filtered vs all syncs so switching
+  // from assignee=me to --all does a full pull on first use
+  const syncKey = options.all ? "last_pull_all_at" : "last_pull_at";
+  const lastPull = getSyncState(syncKey);
   let pullPath = `/api/v1/projects/${config.projectId}/tasks`;
   const params: string[] = [];
 
@@ -164,7 +168,42 @@ export async function sync(options: { json?: boolean; all?: boolean }) {
     pulled++;
   }
 
-  setSyncState("last_pull_at", serverTime);
+  // --- Refresh comments/activities for existing tasks not in delta ---
+  const allLocal = getAllTasks();
+  const pulledIds = new Set(serverTasks.map((t) => t.id));
+  for (const local of allLocal) {
+    if (pulledIds.has(local.id) || local.is_new) continue;
+    try {
+      const detail = await get<TaskDetailResponse>(`/api/v1/tasks/${local.id}`);
+      for (const c of detail.comments) {
+        upsertComment({
+          id: c.id,
+          task_id: local.id,
+          body: c.body,
+          author_id: c.author?.id ?? null,
+          author_name: c.author?.name ?? null,
+          created_at: c.createdAt,
+        });
+      }
+      for (const a of detail.activities) {
+        upsertActivity({
+          id: a.id,
+          task_id: local.id,
+          action: a.action,
+          field: a.field,
+          old_value: a.oldValue,
+          new_value: a.newValue,
+          user_id: a.user?.id ?? null,
+          user_name: a.user?.name ?? null,
+          created_at: a.createdAt,
+        });
+      }
+    } catch {
+      // Non-fatal
+    }
+  }
+
+  setSyncState(syncKey, serverTime);
 
   // --- Pull members ---
   try {
