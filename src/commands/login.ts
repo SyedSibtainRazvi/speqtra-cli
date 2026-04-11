@@ -8,12 +8,12 @@ export async function login(options: { json?: boolean }) {
 	let serverUrl: string;
 	try {
 		serverUrl = await rl.question(
-			`Server URL ${chalk.dim("(default: https://speqtra.vercel.app)")}: `,
+			`Server URL ${chalk.dim("(default: https://speqtra.app)")}: `,
 		);
 	} finally {
 		// Don't close rl yet, need it for the next question
 	}
-	serverUrl = serverUrl.trim() || "https://speqtra.vercel.app";
+	serverUrl = serverUrl.trim() || "https://speqtra.app";
 	serverUrl = serverUrl.replace(/\/$/, "");
 
 	let apiKey: string;
@@ -27,7 +27,7 @@ export async function login(options: { json?: boolean }) {
 	if (!apiKey) {
 		console.error(
 			chalk.red(
-				"No API key provided. Generate one at https://speqtra.vercel.app/speqtra/settings",
+				"No API key provided. Generate one at https://speqtra.app/speqtra/settings",
 			),
 		);
 		process.exit(1);
