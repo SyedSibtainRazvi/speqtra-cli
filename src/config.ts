@@ -85,3 +85,4 @@ export function formatTaskId(prefix: string, number: number | null): string {
 
 export const PROJECT_DIR_PATH = PROJECT_DIR;
 export const DB_PATH = join(PROJECT_DIR, "speqtra.db");
+export const CONTEXT_DIR_PATH = join(PROJECT_DIR, "context");
