@@ -86,5 +86,3 @@ export function installSkill(): InstallResult {
 		projectVersion,
 	};
 }
-
-export { PROJECT_SKILL_FILE, BUNDLED_SKILL_FILE };
