@@ -16,7 +16,7 @@ import {
 	upsertMembers,
 	upsertTask,
 } from "../db.js";
-import { readContextDir, readLegacyContext } from "../lib/context-reader.js";
+import { readContextDir } from "../lib/context-reader.js";
 
 interface TaskFromServer {
 	id: string;
@@ -299,25 +299,15 @@ export async function sync(options: { json?: boolean; all?: boolean }) {
 
 	// --- Push repo context if indexed ---
 	let contextPushed = false;
-	const v2 = readContextDir();
-	if (v2) {
+	const contextPayload = readContextDir();
+	if (contextPayload) {
 		try {
-			await patch(`/api/v1/projects/${config.projectId}`, { repoContext: v2 });
+			await patch(`/api/v1/projects/${config.projectId}`, {
+				repoContext: contextPayload,
+			});
 			contextPushed = true;
 		} catch {
 			// Non-fatal
-		}
-	} else {
-		const legacy = readLegacyContext();
-		if (legacy) {
-			try {
-				await patch(`/api/v1/projects/${config.projectId}`, {
-					repoContext: legacy,
-				});
-				contextPushed = true;
-			} catch {
-				// Non-fatal
-			}
 		}
 	}
 

@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { CONTEXT_DIR_PATH, PROJECT_DIR_PATH } from "../config.js";
+import { CONTEXT_DIR_PATH } from "../config.js";
 
 export interface ContextFile {
 	name: string;
@@ -76,14 +76,4 @@ export function readContextDir(): ContextPayloadV2 | null {
 	const payload: ContextPayloadV2 = { version: 2, files };
 	if (index !== undefined) payload.index = index;
 	return payload;
-}
-
-export function readLegacyContext(): unknown | null {
-	const legacyPath = join(PROJECT_DIR_PATH, "repo-context.json");
-	if (!existsSync(legacyPath)) return null;
-	try {
-		return JSON.parse(readFileSync(legacyPath, "utf-8"));
-	} catch {
-		return null;
-	}
 }
