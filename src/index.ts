@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { createRequire } from "node:module";
 import chalk from "chalk";
 import { Command } from "commander";
 import { ApiError } from "./api.js";
@@ -16,12 +17,16 @@ import { sync } from "./commands/sync.js";
 import { drop, take } from "./commands/take.js";
 import { update } from "./commands/update.js";
 
+const pkg = createRequire(import.meta.url)("../package.json") as {
+	version: string;
+};
+
 const program = new Command();
 
 program
 	.name("speqtra")
 	.description("Speqtra CLI — sync tasks to your coding agent")
-	.version("0.1.0");
+	.version(pkg.version);
 
 // --- Daily workflow (most used) ---
 

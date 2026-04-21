@@ -17,3 +17,18 @@ Key routing rules:
 - Architecture review → invoke plan-eng-review
 - Save progress, checkpoint, resume → invoke checkpoint
 - Code quality, health check → invoke health
+
+## Versioning
+
+Two independent versions:
+
+- **CLI version** — `package.json:version`. Source of truth. `src/index.ts` reads
+  it at runtime via `createRequire`, so `speqtra --version` always matches.
+  Bump on every npm publish.
+- **Skill version** — `skill/speqtra-index/SKILL.md` frontmatter `version:`.
+  Independent from CLI. Bump **only when skill content changes** —
+  `skill-installer.ts` compares bundled vs installed skill version to decide
+  if a reinstall is needed. Bumping on unchanged content spams users with
+  unnecessary updates.
+
+Health stack: `tsc --noEmit`, `biome check src/`, `vitest run`, `knip`.
