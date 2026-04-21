@@ -1,8 +1,6 @@
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import chalk from "chalk";
 import { ApiError, get, patch, post } from "../api.js";
-import { PROJECT_DIR_PATH, getProjectConfig } from "../config.js";
+import { getProjectConfig } from "../config.js";
 import {
 	getAllTasks,
 	getDirtyTasks,
@@ -18,6 +16,7 @@ import {
 	upsertMembers,
 	upsertTask,
 } from "../db.js";
+import { readContextDir, readLegacyContext } from "../lib/context-reader.js";
 
 interface TaskFromServer {
 	id: string;
@@ -300,14 +299,25 @@ export async function sync(options: { json?: boolean; all?: boolean }) {
 
 	// --- Push repo context if indexed ---
 	let contextPushed = false;
-	const contextPath = join(PROJECT_DIR_PATH, "repo-context.json");
-	if (existsSync(contextPath)) {
+	const v2 = readContextDir();
+	if (v2) {
 		try {
-			const repoContext = JSON.parse(readFileSync(contextPath, "utf-8"));
-			await patch(`/api/v1/projects/${config.projectId}`, { repoContext });
+			await patch(`/api/v1/projects/${config.projectId}`, { repoContext: v2 });
 			contextPushed = true;
 		} catch {
 			// Non-fatal
+		}
+	} else {
+		const legacy = readLegacyContext();
+		if (legacy) {
+			try {
+				await patch(`/api/v1/projects/${config.projectId}`, {
+					repoContext: legacy,
+				});
+				contextPushed = true;
+			} catch {
+				// Non-fatal
+			}
 		}
 	}
 
