@@ -1,11 +1,11 @@
 {
   "name": "@speqtra/cli",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Speqtra CLI — sync tasks to your coding agent",
   "type": "module",
   "bin": {
-    "speqtra": "./dist/index.js",
-    "sp": "./dist/index.js"
+    "speqtra": "dist/index.js",
+    "sp": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",
