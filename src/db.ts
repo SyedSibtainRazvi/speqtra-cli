@@ -2,6 +2,25 @@ import { existsSync } from "node:fs";
 import Database from "better-sqlite3";
 import { DB_PATH } from "./config.js";
 
+function assertNativeSqlite(): void {
+	if (typeof Database !== "function") {
+		throw new Error(
+			[
+				"better-sqlite3 native binding is missing or stubbed.",
+				"This usually means your workspace has a pnpm/npm override forcing better-sqlite3 to an empty package.",
+				"",
+				"Fix options:",
+				"  1. Install @speqtra/cli globally instead of into your workspace:",
+				"       npm i -g @speqtra/cli",
+				"  2. Or scope the override in your root package.json so it only applies to your app:",
+				'       "pnpm": { "overrides": { "<your-app-name>>better-sqlite3": "npm:empty-npm-package@1.0.0" } }',
+				"",
+				"After fixing, run `pnpm install` and retry.",
+			].join("\n"),
+		);
+	}
+}
+
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS tasks (
   id              TEXT PRIMARY KEY,
@@ -71,6 +90,7 @@ let _db: Database.Database | null = null;
 
 export function getDb(): Database.Database {
 	if (_db) return _db;
+	assertNativeSqlite();
 	if (!existsSync(DB_PATH)) {
 		throw new Error("No local database. Run `speqtra init` first.");
 	}
@@ -108,6 +128,7 @@ function migrateDb(db: Database.Database): void {
 }
 
 export function initDb(): Database.Database {
+	assertNativeSqlite();
 	_db = new Database(DB_PATH);
 	_db.pragma("journal_mode = WAL");
 	_db.exec(SCHEMA);
