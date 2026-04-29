@@ -50,17 +50,9 @@ export async function indexRepo(options: { json?: boolean }) {
 		console.log(chalk.cyan("→ Running Claude Code with /speqtra-index…"));
 	}
 	const run = await runClaudeHeadless({ prompt: "/speqtra-index" });
-	if (run.exitCode !== 0) {
-		console.error(
-			chalk.red(
-				run.timedOut
-					? `Agent timed out after ${Math.round(run.durationMs / 1000)}s.`
-					: `Agent exited with code ${run.exitCode}.`,
-			),
-		);
-		process.exit(1);
-	}
 
+	// Always sanitize whatever the skill wrote, even on timeout / non-zero exit.
+	// Skipping this leaks raw repo content (env vars, keys, paths) to disk.
 	const sanitize = sanitizeDir(CONTEXT_DIR_PATH);
 
 	if (options.json) {
@@ -69,10 +61,30 @@ export async function indexRepo(options: { json?: boolean }) {
 				install: install.action,
 				bundledVersion: install.bundledVersion,
 				durationMs: run.durationMs,
+				exitCode: run.exitCode,
+				timedOut: run.timedOut,
 				sanitize,
 			}),
 		);
+		if (run.exitCode !== 0) process.exit(1);
 		return;
+	}
+
+	if (run.exitCode !== 0) {
+		console.error(
+			chalk.red(
+				run.timedOut
+					? `Agent timed out after ${Math.round(run.durationMs / 1000)}s.`
+					: `Agent exited with code ${run.exitCode}.`,
+			),
+		);
+		console.log(
+			chalk.dim(
+				"  Partial context written to .speqtra/context/ has been sanitized.",
+			),
+		);
+		printSanitizeSummary(sanitize);
+		process.exit(1);
 	}
 
 	console.log(
@@ -80,6 +92,11 @@ export async function indexRepo(options: { json?: boolean }) {
 			`✓ Indexed repository in ${Math.round(run.durationMs / 1000)}s`,
 		),
 	);
+	printSanitizeSummary(sanitize);
+	console.log(chalk.dim("  Run `speqtra sync` to push to server."));
+}
+
+function printSanitizeSummary(sanitize: ReturnType<typeof sanitizeDir>): void {
 	if (sanitize.totalRedactions > 0) {
 		const hitFiles = sanitize.files.filter((f) => f.totalRedactions > 0);
 		console.log(
@@ -94,5 +111,4 @@ export async function indexRepo(options: { json?: boolean }) {
 			console.log(chalk.dim(`    ${f.file}: ${parts}`));
 		}
 	}
-	console.log(chalk.dim("  Run `speqtra sync` to push to server."));
 }
