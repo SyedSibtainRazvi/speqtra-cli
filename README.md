@@ -14,21 +14,18 @@ Your coding agent (Claude Code, Cursor, Copilot, Codex) instantly sees the full 
 
 ## Install
 
+Requires Node >= 22.13.
+
 ### Option A — Let your coding agent install it (recommended)
 
-Paste this into Claude Code, Codex, Cursor, or any agent CLI in your repo:
+Paste this into Claude Code, Codex, Cursor, or any agent CLI:
 
 ````text
 Install the Speqtra CLI for me. Do exactly this, nothing more:
 
-1. Install globally — NOT into this workspace:
+1. Install globally with whichever package manager I have:
      npm install -g @speqtra/cli
-   If npm is unavailable, try `pnpm add -g @speqtra/cli` or
-   `bun add -g @speqtra/cli`.
-   Do not run `pnpm add @speqtra/cli` or `pnpm add -w @speqtra/cli`. The
-   CLI ships `better-sqlite3` (native module). If this repo has a
-   `pnpm.overrides` entry that stubs `better-sqlite3` (common in Next.js
-   / Vercel repos), a workspace install will silently break it.
+   (or `pnpm add -g`, `bun add -g`, `yarn global add`)
 
 2. Verify the install printed a version:
      sp --version
@@ -42,21 +39,6 @@ Install the Speqtra CLI for me. Do exactly this, nothing more:
 ```bash
 npm install -g @speqtra/cli
 ```
-
-> **Install globally — do not add to a workspace.** `@speqtra/cli` ships
-> `better-sqlite3` (native module). If your repo has a `pnpm.overrides`
-> entry that stubs `better-sqlite3` (common for Next.js / Vercel deploys),
-> a workspace install will silently break the CLI.
->
-> If you must install locally, scope the override to your app only:
->
-> ```json
-> "pnpm": {
->   "overrides": {
->     "<your-app-name>>better-sqlite3": "npm:empty-npm-package@1.0.0"
->   }
-> }
-> ```
 
 ## Quick Start (local, no account needed)
 
