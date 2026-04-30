@@ -1,5 +1,16 @@
 #!/usr/bin/env node
 
+const [nodeMajor, nodeMinor] = process.versions.node.split(".").map(Number);
+if (nodeMajor < 22 || (nodeMajor === 22 && nodeMinor < 13)) {
+	console.error(
+		`Speqtra CLI requires Node >= 22.13.0 (you have ${process.versions.node}). Upgrade Node and retry.`,
+	);
+	process.exit(1);
+}
+
+// Suppress Node's ExperimentalWarning for node:sqlite (still 1.2 RC).
+process.removeAllListeners("warning");
+
 import { createRequire } from "node:module";
 import chalk from "chalk";
 import { Command } from "commander";

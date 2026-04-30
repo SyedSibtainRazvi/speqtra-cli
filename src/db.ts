@@ -1,23 +1,15 @@
 import { existsSync } from "node:fs";
-import Database from "better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
 import { DB_PATH } from "./config.js";
 
-function assertNativeSqlite(): void {
-	if (typeof Database !== "function") {
-		throw new Error(
-			[
-				"better-sqlite3 native binding is missing or stubbed.",
-				"This usually means your workspace has a pnpm/npm override forcing better-sqlite3 to an empty package.",
-				"",
-				"Fix options:",
-				"  1. Install @speqtra/cli globally instead of into your workspace:",
-				"       npm i -g @speqtra/cli",
-				"  2. Or scope the override in your root package.json so it only applies to your app:",
-				'       "pnpm": { "overrides": { "<your-app-name>>better-sqlite3": "npm:empty-npm-package@1.0.0" } }',
-				"",
-				"After fixing, run `pnpm install` and retry.",
-			].join("\n"),
-		);
+function tx(db: DatabaseSync, fn: () => void): void {
+	db.exec("BEGIN IMMEDIATE");
+	try {
+		fn();
+		db.exec("COMMIT");
+	} catch (err) {
+		db.exec("ROLLBACK");
+		throw err;
 	}
 }
 
@@ -86,22 +78,23 @@ CREATE INDEX IF NOT EXISTS idx_comments_task ON comments(task_id);
 CREATE INDEX IF NOT EXISTS idx_activities_task ON activities(task_id);
 `;
 
-let _db: Database.Database | null = null;
+let _db: DatabaseSync | null = null;
 
-export function getDb(): Database.Database {
+export function getDb(): DatabaseSync {
 	if (_db) return _db;
-	assertNativeSqlite();
 	if (!existsSync(DB_PATH)) {
 		throw new Error("No local database. Run `speqtra init` first.");
 	}
-	_db = new Database(DB_PATH);
-	_db.pragma("journal_mode = WAL");
+	_db = new DatabaseSync(DB_PATH);
+	_db.exec("PRAGMA journal_mode = WAL");
 	migrateDb(_db);
 	return _db;
 }
 
-function migrateDb(db: Database.Database): void {
-	const cols = db.pragma("table_info(tasks)") as { name: string }[];
+function migrateDb(db: DatabaseSync): void {
+	const cols = db.prepare("PRAGMA table_info(tasks)").all() as {
+		name: string;
+	}[];
 	const colNames = new Set(cols.map((c) => c.name));
 	if (!colNames.has("number")) {
 		db.exec("ALTER TABLE tasks ADD COLUMN number INTEGER");
@@ -127,10 +120,9 @@ function migrateDb(db: Database.Database): void {
   `);
 }
 
-export function initDb(): Database.Database {
-	assertNativeSqlite();
-	_db = new Database(DB_PATH);
-	_db.pragma("journal_mode = WAL");
+export function initDb(): DatabaseSync {
+	_db = new DatabaseSync(DB_PATH);
+	_db.exec("PRAGMA journal_mode = WAL");
 	_db.exec(SCHEMA);
 	return _db;
 }
@@ -305,7 +297,7 @@ export function getNewTasks(): LocalTask[] {
 	const db = getDb();
 	return db
 		.prepare("SELECT * FROM tasks WHERE is_new = 1")
-		.all() as LocalTask[];
+		.all() as unknown as LocalTask[];
 }
 
 // FIX: Also rewrite comments.task_id and activities.task_id when a local
@@ -318,7 +310,7 @@ export function markSynced(
 	serverNumber: number,
 ): void {
 	const db = getDb();
-	const tx = db.transaction(() => {
+	tx(db, () => {
 		db.prepare(
 			"UPDATE tasks SET is_new = 0, is_dirty = 0, id = ?, number = ?, cloud_version = ?, synced_at = datetime('now') WHERE id = ?",
 		).run(serverId, serverNumber, cloudVersion, taskId);
@@ -331,14 +323,13 @@ export function markSynced(
 			taskId,
 		);
 	});
-	tx();
 }
 
 export function getDirtyTasks(): LocalTask[] {
 	const db = getDb();
 	return db
 		.prepare("SELECT * FROM tasks WHERE is_dirty = 1")
-		.all() as LocalTask[];
+		.all() as unknown as LocalTask[];
 }
 
 export function markClean(taskId: string, newCloudVersion: number): void {
@@ -352,7 +343,7 @@ export function getAllTasks(): LocalTask[] {
 	const db = getDb();
 	return db
 		.prepare("SELECT * FROM tasks ORDER BY created_at DESC")
-		.all() as LocalTask[];
+		.all() as unknown as LocalTask[];
 }
 
 export function findTask(taskIdOrNumber: string): LocalTask | null {
@@ -374,7 +365,7 @@ export function findTask(taskIdOrNumber: string): LocalTask | null {
 
 	const prefix = db
 		.prepare("SELECT * FROM tasks WHERE id LIKE ? LIMIT 2")
-		.all(`${taskIdOrNumber}%`) as LocalTask[];
+		.all(`${taskIdOrNumber}%`) as unknown as LocalTask[];
 	if (prefix.length === 1) return prefix[0];
 
 	return null;
@@ -428,7 +419,7 @@ export function getNewComments(): LocalComment[] {
 	const db = getDb();
 	return db
 		.prepare("SELECT * FROM comments WHERE is_new = 1")
-		.all() as LocalComment[];
+		.all() as unknown as LocalComment[];
 }
 
 export function markCommentSynced(localId: string, serverId: string): void {
@@ -443,7 +434,7 @@ export function getTaskComments(taskId: string): LocalComment[] {
 	const db = getDb();
 	return db
 		.prepare("SELECT * FROM comments WHERE task_id = ? ORDER BY created_at ASC")
-		.all(taskId) as LocalComment[];
+		.all(taskId) as unknown as LocalComment[];
 }
 
 // --- Activities ---
@@ -482,7 +473,7 @@ export function getTaskActivities(taskId: string): LocalActivity[] {
 		.prepare(
 			"SELECT * FROM activities WHERE task_id = ? ORDER BY created_at DESC LIMIT 20",
 		)
-		.all(taskId) as LocalActivity[];
+		.all(taskId) as unknown as LocalActivity[];
 }
 
 // --- Members ---
@@ -492,12 +483,11 @@ export function upsertMembers(members: { id: string; name: string }[]): void {
 	const stmt = db.prepare(
 		"INSERT OR REPLACE INTO members (id, name) VALUES (?, ?)",
 	);
-	const tx = db.transaction(() => {
+	tx(db, () => {
 		for (const m of members) {
 			stmt.run(m.id, m.name);
 		}
 	});
-	tx();
 }
 
 export function resolveAssignee(

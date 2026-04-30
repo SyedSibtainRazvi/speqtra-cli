@@ -117,7 +117,9 @@ export async function update(
 	sets.push("updated_at = datetime('now')");
 	params.push(task.id);
 
-	db.prepare(`UPDATE tasks SET ${sets.join(", ")} WHERE id = ?`).run(...params);
+	db.prepare(`UPDATE tasks SET ${sets.join(", ")} WHERE id = ?`).run(
+		...(params as (string | number | null)[]),
+	);
 
 	const displayId = formatTaskId(config.taskPrefix, task.number);
 

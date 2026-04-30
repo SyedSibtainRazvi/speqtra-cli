@@ -56,7 +56,7 @@ export async function list(options: {
     CASE status WHEN 'in_progress' THEN 1 WHEN 'open' THEN 2 WHEN 'review' THEN 3 WHEN 'blocked' THEN 4 WHEN 'done' THEN 5 END,
     CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END`;
 
-	const tasks = db.prepare(query).all(...params) as TaskRow[];
+	const tasks = db.prepare(query).all(...params) as unknown as TaskRow[];
 
 	if (options.json) {
 		console.log(
